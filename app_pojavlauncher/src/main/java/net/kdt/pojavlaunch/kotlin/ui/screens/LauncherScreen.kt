@@ -1,4 +1,6 @@
 package net.kdt.pojavlaunch.ui.screens
+import androidx.compose.ui.res.dimensionResource
+import net.kdt.pojavlaunch.R
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
