@@ -1,0 +1,18 @@
+{
+  "targets": [],
+  "passes": [
+    {
+      "name": "kroxclient:hybrid_motion_blur",
+      "intarget": "minecraft:main",
+      "outtarget": "minecraft:main",
+      "uniforms": [
+        {
+          "name": "Strength",
+          "type": "float",
+          "count": 1,
+          "values": [0.75]
+        }
+      ]
+    }
+  ]
+}

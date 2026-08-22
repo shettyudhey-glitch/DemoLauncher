@@ -3,7 +3,7 @@
   "passes": [
     {
       "vertexShaderId": "minecraft:shaders/core/blit",
-      "fragmentShaderId": "optimisticclient:shaders/core/motion_blur",
+      "fragmentShaderId": "kroxclient:shaders/core/motion_blur",
       "inputs": [
         {
           "samplerName": "DiffuseSampler",
@@ -11,7 +11,7 @@
         },
         {
           "samplerName": "HistorySampler",
-          "targetId": "optimisticclient:history"
+          "targetId": "kroxclient:history"
         }
       ],
       "outputTarget": "minecraft:main",

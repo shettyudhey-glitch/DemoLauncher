@@ -1,0 +1,19 @@
+{
+  "targets": [
+    "minecraft:main"
+  ],
+  "passes": [
+    {
+      "program": "kroxclient:gaussian_blur",
+      "input": "minecraft:main",
+      "output": "minecraft:main",
+      "uniforms": [
+        {
+          "name": "Radius",
+          "type": "float",
+          "values": [1.0]
+        }
+      ]
+    }
+  ]
+}
