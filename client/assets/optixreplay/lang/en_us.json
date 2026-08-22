@@ -1,7 +1,0 @@
-{
-  "key.category.optixreplay": "OptiX Replay",
-  "key.optixreplay.toggle_recording": "Toggle Replay Recording",
-  "message.optixreplay.recording_started": "Replay recording started",
-  "message.optixreplay.recording_stopped": "Replay recording stopped",
-  "message.optixreplay.recording_failed": "Replay recording failed"
-}
