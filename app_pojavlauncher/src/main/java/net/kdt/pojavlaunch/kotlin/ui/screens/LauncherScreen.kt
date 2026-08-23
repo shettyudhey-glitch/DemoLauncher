@@ -62,6 +62,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -398,7 +399,7 @@ fun ProgressCard(
 
     ElevatedCard(
         modifier = modifier
-            .width(dimensionResource(id = R.dimen._280sdp))
+            .width(280.dp)
             .animateContentSize(animationSpec = m3SizeSpec),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.elevatedCardColors(
@@ -579,49 +580,100 @@ fun TopBarButton(
 }
 
 @Composable
+fun SlimSidebar(
+    sidebarWidth: Dp = 60.dp,
+    selectedCategory: Int,
+    onCategoryClick: (Int) -> Unit,
+    onSettingsClick: () -> Unit,
+    onAccountBadgeClick: () -> Unit,
+    currentAccount: MinecraftAccount?,
+    accounts: List<MinecraftAccount>,
+    modifier: Modifier = Modifier
+) {
+    val crimsonRed = Color(0xFFDC2626)
+    val steelGrey = Color(0xFF24242C)
+    val obsidianBlack = Color(0xFF08080A)
+    val charcoalGrey = Color(0xFF121216)
+
+    val sidebarItems = listOf(
+        SidebarItem(-1, "Home", Icons.Default.Home),
+        SidebarItem(2, "Mod Manager", Icons.Default.Favorite),
+        SidebarItem(1, "File Manager", Icons.Default.Folder),
+        SidebarItem(4, "Accounts", Icons.Default.AccountCircle),
+        SidebarItem(9, "Instance Manager", Icons.Default.Settings),
+        SidebarItem(10, "Skin & Cape", Icons.Default.Image)
+    )
+
+    Box(
+        modifier = modifier
+            .width(sidebarWidth)
+            .fillMaxHeight()
+            .background(charcoalGrey)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+                .padding(vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top
+        ) {
+            sidebarItems.forEach { item ->
+                val isSelected = selectedCategory == item.category
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isSelected) steelGrey else Color.Transparent)
+                        .border(
+                            width = if (isSelected) 2.dp else 0.dp,
+                            color = if (isSelected) crimsonRed else Color.Transparent,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .clickable { onCategoryClick(item.category) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.label,
+                        modifier = Modifier.size(24.dp),
+                        tint = if (isSelected) crimsonRed else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(Modifier.height(4.dp))
+            }
+        }
+    }
+}
+
+private data class SidebarItem(
+    val category: Int,
+    val label: String,
+    val icon: ImageVector
+)
+
+@Composable
 fun TopBar(
     topBarHeight: androidx.compose.ui.unit.Dp,
     ignoreNotch: Boolean,
     hasBackground: Boolean,
-    isAnyScreenOpen: Boolean,
-    isProgressVisible: Boolean,
-    isOnline: Boolean,
-    taskCount: Int,
-    selectedCategory: Int,
-    currentFragmentTag: String?,
-    onHomeClick: () -> Unit,
-    onProgressClick: () -> Unit,
-    onCategoryClick: (Int) -> Unit,
-    onAboutClick: () -> Unit
+    currentAccount: MinecraftAccount?,
+    onAccountBadgeClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val title = remember(selectedCategory, currentFragmentTag) {
-        when (selectedCategory) {
-            1 -> "Files"
-            2 -> "Installer"
-            3 -> "Settings"
-            4 -> "Accounts"
-            5 -> "Select Instance"
-            6 -> "Instance Type"
-            7 -> "Edit Instance"
-            8 -> "About"
-            else -> {
-                when (currentFragmentTag) {
-                    MainMenuFragment.TAG -> "HyperLauncher"
-                    "FileSelectorFragment" -> "Select File"
-                    "InstanceEditorFragment" -> "Edit Instance"
-                    null -> "HyperLauncher"
-                    else -> currentFragmentTag.substringAfterLast('.').replace("Fragment", "")
-                }
-            }
-        }
-    }
+    val crimsonRed = Color(0xFFDC2626)
+    val obsidianBlack = Color(0xFF08080A)
 
     Surface(
-        modifier = Modifier.fillMaxWidth().height(topBarHeight),
-        color = MaterialTheme.colorScheme.surface.copy(
-            alpha = if (hasBackground) LauncherPreferences.PREF_CONTENT_TRANSPARENCY_STATE.value else 1f
+        modifier = modifier
+            .fillMaxWidth()
+            .height(topBarHeight),
+        color = obsidianBlack.copy(
+            alpha = if (hasBackground) 0.85f else 1f
         ),
-        tonalElevation = 3.dp
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Row(
@@ -633,130 +685,68 @@ fun TopBar(
                     },
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.padding(start = if (ignoreNotch) 8.dp else 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                // Left: Active Account Badge (circular with #DC2626 border)
+                Box(
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .border(
+                            width = 2.dp,
+                            color = crimsonRed,
+                            shape = CircleShape
+                        )
+                        .clickable(onClick = onAccountBadgeClick),
+                    contentAlignment = Alignment.Center
                 ) {
-                    if (isAnyScreenOpen) {
-                        IconButton(
-                            onClick = onHomeClick,
-                            modifier = Modifier.size(32.dp)
-                        ) {
+                    if (currentAccount != null) {
+                        val faceBitmap = currentAccount.getSkinFace()
+                        if (faceBitmap != null) {
+                            Image(
+                                bitmap = faceBitmap.asImageBitmap(),
+                                contentDescription = "Active Account",
+                                modifier = Modifier.size(28.dp),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                modifier = Modifier.size(18.dp),
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = "Active Account",
+                                modifier = Modifier.size(24.dp),
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     } else {
                         Icon(
-                            painter = painterResource(id = R.drawable.icon_hyper),
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp).padding(start = 8.dp).clickable(onClick = onAboutClick),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(Modifier.width(8.dp))
-                    }
-
-                    Text(
-                        text = "HyperLauncher",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.clickable(onClick = onAboutClick)
-                    )
-
-                    if (isAnyScreenOpen && title != "HyperLauncher") {
-                        Text(
-                            text = " — ",
-                            modifier = Modifier.padding(horizontal = 4.dp),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        )
-                        
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = "Active Account",
+                            modifier = Modifier.size(24.dp),
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                Row(
+                // Right: Settings Gear Icon
+                IconButton(
+                    onClick = onSettingsClick,
                     modifier = Modifier
-                        .padding(end = if (ignoreNotch) 12.dp else 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        .size(48.dp)
+                        .padding(end = if (ignoreNotch) 12.dp else 8.dp)
                 ) {
-                    // Task indicator with horizontal expansion to avoid vertical glitching
-                    AnimatedVisibility(
-                        visible = !isProgressVisible && taskCount > 0,
-                        enter = fadeIn() + expandHorizontally(expandFrom = Alignment.End),
-                        exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.End)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .clip(shape = MaterialTheme.shapes.large)
-                                .clickable { onProgressClick() }
-                                .padding(all = 8.dp)
-                                .width(120.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            LinearProgressIndicator(modifier = Modifier.weight(1f))
-                            Icon(
-                                modifier = Modifier.size(22.dp),
-                                imageVector = Icons.Default.HourglassEmpty,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    TopBarButton(
-                        onClick = { onCategoryClick(1) },
-                        isSelected = selectedCategory == 1,
-                        imageVector = Icons.Default.Folder,
-                        label = "Files",
-                        topBarHeight = topBarHeight
-                    )
-
-                    TopBarButton(
-                        onClick = { onCategoryClick(2) },
-                        isSelected = selectedCategory == 2,
-                        imageVector = Icons.Default.Download,
-                        label = "Installer",
-                        topBarHeight = topBarHeight
-                    )
-
-                    TopBarButton(
-                        onClick = { onCategoryClick(3) },
-                        isSelected = selectedCategory == 3,
+                    Icon(
                         imageVector = Icons.Default.Settings,
-                        label = "Settings",
-                        topBarHeight = topBarHeight,
-                        ignoreNotch = ignoreNotch,
-                        isRightmost = true
+                        contentDescription = "Settings",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
-
-            // Connection indicator line
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(if (isOnline) Color.White else Color.Red.copy(alpha = 0.8f))
-                    .align(Alignment.BottomCenter)
-            )
         }
     }
 }
+
 
 @Composable
 fun LauncherScreen(
@@ -769,7 +759,8 @@ fun LauncherScreen(
     val isPreview = LocalInspectionMode.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val topBarHeight = 40.dp
+    val topBarHeight = 56.dp
+    val sidebarWidth = 60.dp
     val ignoreNotch = remember { if (isPreview) true else LauncherPreferences.PREF_IGNORE_NOTCH }
 
     val backgroundPath = LauncherPreferences.PREF_BACKGROUND_PATH_STATE.value
@@ -962,8 +953,11 @@ fun LauncherScreen(
     val launchGameListener = remember {
         ExtraListener<Boolean> { _, value ->
             if (value) {
-                if (Accounts.getCurrent() == null) {
-                    Toast.makeText(context, "No account selected!", Toast.LENGTH_SHORT).show()
+                if (accounts.isEmpty()) {
+                    selectedCategory = 4
+                    showAddAccountDialogInManager = true
+                } else if (Accounts.getCurrent() == null) {
+                    selectedCategory = 4
                 } else {
                     isGameLaunching = true
                 }
@@ -1021,60 +1015,77 @@ fun LauncherScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         LauncherBackground(isPaused = isGameLaunching || taskCount > 0)
 
-        Column(modifier = Modifier.fillMaxSize()) {
-            TopBar(
-                topBarHeight = topBarHeight,
-                ignoreNotch = ignoreNotch,
-                hasBackground = hasBackground,
-                isAnyScreenOpen = isAnyScreenOpen,
-                isProgressVisible = isProgressVisible,
-                isOnline = isOnline.value,
-                taskCount = taskCount,
+        Row(modifier = Modifier.fillMaxSize()) {
+            SlimSidebar(
+                sidebarWidth = sidebarWidth,
                 selectedCategory = selectedCategory,
-                currentFragmentTag = currentFragmentTag,
-                onHomeClick = {
-                    val activity = context as? FragmentActivity
-                    val manager = activity?.supportFragmentManager
-                    
-                    if (selectedCategory != -1) {
-                        selectedCategory = -1
-                        showAddAccountDialogInManager = false
-                    } else if (manager != null && manager.backStackEntryCount > 0) {
-                        manager.popBackStack()
-                    } else if (isFragmentOpen) {
-                        onHomeRequest()
-                    }
-                    if (isProgressVisible) onProgressClick()
-                },
-                onProgressClick = onProgressClick,
                 onCategoryClick = { category ->
                     if (selectedCategory == category) {
-                        selectedCategory = -1 // Toggle home if clicking already selected
+                        selectedCategory = -1
                     } else {
                         if (isProgressVisible) onProgressClick()
                         selectedCategory = category
                     }
                     showAddAccountDialogInManager = false
                 },
-                onAboutClick = {
-                    if (selectedCategory == 8) {
+                onSettingsClick = {
+                    if (selectedCategory == 3) {
                         selectedCategory = -1
                     } else {
                         if (isProgressVisible) onProgressClick()
-                        selectedCategory = 8
+                        selectedCategory = 3
                     }
-                }
+                },
+                onAccountBadgeClick = {
+                    if (selectedCategory == 4) {
+                        selectedCategory = -1
+                    } else {
+                        if (isProgressVisible) onProgressClick()
+                        selectedCategory = 4
+                    }
+                },
+                currentAccount = currentAccount,
+                accounts = accounts
             )
 
-            // Persistent screen layer wrapper
-            Box(
+            Column(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-                    .background(
-                        if (hasBackground) MaterialTheme.colorScheme.surface.copy(alpha = backgroundTransparency)
-                        else Color.Transparent
-                    )
+                    .fillMaxHeight()
+            ) {
+                TopBar(
+                    topBarHeight = topBarHeight,
+                    ignoreNotch = ignoreNotch,
+                    hasBackground = hasBackground,
+                    currentAccount = currentAccount,
+                    onAccountBadgeClick = {
+                        if (selectedCategory == 4) {
+                            selectedCategory = -1
+                        } else {
+                            if (isProgressVisible) onProgressClick()
+                            selectedCategory = 4
+                        }
+                        showAddAccountDialogInManager = false
+                    },
+                    onSettingsClick = {
+                        if (selectedCategory == 3) {
+                            selectedCategory = -1
+                        } else {
+                            if (isProgressVisible) onProgressClick()
+                            selectedCategory = 3
+                        }
+                    }
+                )
+
+                // Persistent screen layer wrapper
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .background(
+                            if (hasBackground) MaterialTheme.colorScheme.surface.copy(alpha = backgroundTransparency)
+                            else Color.Transparent
+                        )
             ) {
                 
                 // Fragment Container is always present but hidden when an overlay is open
@@ -1120,7 +1131,7 @@ fun LauncherScreen(
                         ) {
                             when (state) {
                                 1 -> DirectoryManagerOverlay(onBack = { selectedCategory = -1 })
-                                2 -> ContentInstallerOverlay(onBack = { selectedCategory = -1 })
+                                2 -> ModManagerOverlay(onBack = { selectedCategory = -1 })
                                 3 -> SettingsOverlay(onBack = { selectedCategory = -1 })
                                 8 -> AboutOverlay(onBack = { selectedCategory = -1 })
                                 4 -> AccountManagerOverlay(
@@ -1175,6 +1186,8 @@ fun LauncherScreen(
                                     onNavigate = { selectedCategory = it }
                                 )
                                 7 -> InstanceEditorOverlay(onBack = { selectedCategory = -1 })
+                                9 -> InstanceManagerOverlay(onBack = { selectedCategory = -1 })
+                                10 -> SkinCapeOverlay(onBack = { selectedCategory = -1 })
                             }
                         }
                     } else {
@@ -1183,6 +1196,7 @@ fun LauncherScreen(
                 }
             }
         }
+    }
 
         AnimatedVisibility(
             visible = isProgressVisible && taskCount > 0,
@@ -1281,6 +1295,129 @@ private fun DirectoryManagerOverlay(onBack: () -> Unit) {
 
     LaunchedEffect(Unit) {
         viewModel.init(null, null)
+    }
+
+    val uploadLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { _ -> }
+
+    var showNewFolderDialog by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var inputName by remember { mutableStateOf("") }
+
+    if (showNewFolderDialog) {
+        AlertDialog(
+            onDismissRequest = { showNewFolderDialog = false },
+            title = { Text("New Folder") },
+            text = {
+                OutlinedTextField(
+                    value = inputName,
+                    onValueChange = { inputName = it },
+                    label = { Text("Folder Name") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.createFolder(inputName)
+                    showNewFolderDialog = false
+                    inputName = ""
+                }) { Text("Create") }
+            },
+            dismissButton = {
+                @Suppress("DEPRECATION")
+                TextButton(onClick = { showNewFolderDialog = false }) { Text(stringResource(id = android.R.string.cancel)) }
+            }
+        )
+    }
+
+    if (showRenameDialog) {
+        AlertDialog(
+            onDismissRequest = { showRenameDialog = false },
+            title = { Text("Rename") },
+            text = {
+                OutlinedTextField(
+                    value = inputName,
+                    onValueChange = { inputName = it },
+                    label = { Text("New Name") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.renameSelected(inputName)
+                    showRenameDialog = false
+                    inputName = ""
+                }) { Text("Rename") }
+            },
+            dismissButton = {
+                @Suppress("DEPRECATION")
+                TextButton(onClick = { showRenameDialog = false }) { Text(stringResource(id = android.R.string.cancel)) }
+            }
+        )
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Confirm Delete") },
+            text = { Text("Are you sure you want to delete '${viewModel.selectedFile?.name}'?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteSelected()
+                        showDeleteConfirm = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) { Text("Delete") }
+            },
+            dismissButton = {
+                @Suppress("DEPRECATION")
+                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(id = android.R.string.cancel)) }
+            }
+        )
+    }
+
+    BackHandler { onBack() }
+
+    Surface(modifier = Modifier.fillMaxSize(), color = Color.Transparent) {
+        DirectoryManagerScreen(
+            onBack = onBack,
+            title = viewModel.title,
+            breadcrumbs = viewModel.getBreadcrumbs(),
+            entries = viewModel.entries,
+            selectedFile = viewModel.selectedFile,
+            statusText = viewModel.statusText,
+            onEntryClick = { file ->
+                if (file.isDirectory) viewModel.openDir(file)
+                else viewModel.selectedFile = file
+            },
+            onEntryLongClick = { file -> viewModel.selectedFile = file },
+            onCrumbClick = { file -> viewModel.openDir(file) },
+            onUpClick = { viewModel.goUp() },
+            onUploadClick = { uploadLauncher.launch("*/*") },
+            onNewFolderClick = {
+                inputName = ""
+                showNewFolderDialog = true
+            },
+            onRenameClick = {
+                inputName = viewModel.selectedFile?.name ?: ""
+                showRenameDialog = true
+            },
+            onToggleDisabledClick = { viewModel.toggleSelectedDisabled() },
+            onDeleteClick = { showDeleteConfirm = true }
+        )
+    }
+}
+
+@Composable
+private fun ModManagerOverlay(onBack: () -> Unit) {
+    val viewModel: DirectoryManagerViewModel = viewModel()
+
+    LaunchedEffect(Unit) {
+        viewModel.init("Mods", "/mods")
     }
 
     val uploadLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { _ -> }
