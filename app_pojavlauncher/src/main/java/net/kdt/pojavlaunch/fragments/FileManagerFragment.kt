@@ -1,77 +1,76 @@
 package net.kdt.pojavlaunch.fragments
-import java.io.File
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.hilt.navigation.compose.hiltViewModel
 
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.activity.compose.ComposeView
-import androidx.compose.foundation.Background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.relativesize
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.shape.shape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.focus.requestFocus
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.isFocusable
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.size
-import androidx.compose.foundation.indicator.rememberToggleSource
-import androidx.compose.foundation.indicator.Toggleable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.preferSize
-import androidx.compose.ui.layout.ContentScale
-import kotlin.result.success
-import net.kdt.pojavlaunch.BaseActivity
-import net.kdt.pojavlaunch.authenticator.Accounts
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.hilt.navigation.compose.hiltViewModel
+import net.kdt.pojavlaunch.ui.theme.PojavTheme
 import net.kdt.pojavlaunch.kotlin.ui.viewmodel.DirectoryManagerViewModel
-import net.kdt.pojavlaunch.ui.screens.SettingsOverlay
-import net.kdt.pojavlaunch.ui.screens.AboutOverlay
-import net.kdt.pojavlaunch.ui.screens.ModManagerFragment
-import dagger.hilt.android.lifecycle.hiltViewModel
+import java.io.File
 
-/**
- * File Manager Fragment - displays directory structure with toolbar actions
- * and directory quick tabs for /mods, /saves, /resourcepacks, /shaderpacks, /logs
- */
 @Composable
 fun FileManagerFragment(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigate: (Int) -> Unit
 ) {
     val context = LocalContext.current
     val isPreview = LocalInspectionMode.current
@@ -81,9 +80,8 @@ fun FileManagerFragment(
     var showRenameDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var inputName by remember { mutableStateOf("") }
-    var showSelectAll by remember { mutableStateOf(false) }
     var selectedFile by remember { mutableStateOf<File?>(null) }
-    var toggleStates by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
+    val toggleStates = remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
 
     val viewModel: DirectoryManagerViewModel = hiltViewModel()
     viewModel.init("Files", null)
@@ -99,55 +97,59 @@ fun FileManagerFragment(
         }
     }
 
-    val entries by viewModel.entries
-
-    // Toolbar actions
-    val isDeleteEnabled = selectedFile != null
+    val entries: List<File> = viewModel.entries
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.Start,
-        scrollState = rememberScrollState()
+        verticalArrangement = Arrangement.Top
     ) {
-        // Directory tabs
-        TabRow(
-            modifier = Modifier.fillMaxWidth(),
-            backgroundColor = Color(0xff24242c),
-            selectionIndicator = {
-                Box(
-                    modifier = Modifier.height(2.dp).offset(top = 4.dp),
-                    color = Color(0xffdc2626)
+        // [ + Add ] Crimson accent button — route to Content Downloader
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            IconButton(
+                onClick = { onNavigate(2) },
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFDC2626))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add content",
+                    tint = Color(0xFF08080A),
+                    modifier = Modifier.size(16.dp)
                 )
             }
+        }
+
+        // Directory tabs
+        TabRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xff24242c))
         ) {
-            Tab(
-                text = { Text("Mods") },
-                selected = selectedTab == "/mods",
-                onSelect = { selectedTab = "/mods" }
+            val tabData = listOf(
+                "/mods" to "Mods",
+                "/saves" to "Saves",
+                "/resourcepacks" to "Resource Packs",
+                "/shaderpacks" to "Shader Packs",
+                "/logs" to "Logs"
             )
-            Tab(
-                text = { Text("Saves") },
-                selected = selectedTab == "/saves",
-                onSelect = { selectedTab = "/saves" }
-            )
-            Tab(
-                text = { Text("Resource Packs") },
-                selected = selectedTab == "/resourcepacks",
-                onSelect = { selectedTab = "/resourcepacks" }
-            )
-            Tab(
-                text = { Text("Shader Packs") },
-                selected = selectedTab == "/shaderpacks",
-                onSelect = { selectedTab = "/shaderpacks" }
-            )
-            Tab(
-                text = { Text("Logs") },
-                selected = selectedTab == "/logs",
-                onSelect = { selectedTab = "/logs" }
-            )
+            tabData.forEach { (tabKey, tabLabel) ->
+                Tab(
+                    text = { Text(tabLabel) },
+                    selected = selectedTab == tabKey,
+                    onClick = { selectedTab = tabKey }
+                )
+            }
         }
 
         // Divider
@@ -155,8 +157,7 @@ fun FileManagerFragment(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(Color(0xff555555)),
-            contentAlignment = Alignment.CenterStart
+                .background(Color(0xff555555))
         )
 
         // Entries list
@@ -168,19 +169,21 @@ fun FileManagerFragment(
             )
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize(Float.PositiveInfinity),
+                modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
-                contentPadding = PaddingValues(4.dp),
-                scrollState = rememberScrollState()
+                contentPadding = PaddingValues(4.dp)
             ) {
-                items(entries, key = { it.path }) { file ->
+                items(entries, key = { it.hashCode() }) { file ->
+                    val isToggled = toggleStates.value[file.path] ?: false
                     FileRow(
                         file = file,
                         isSelected = selectedFile?.path == file.path,
-                        toggleState = toggleStates[file.path] ?: false,
+                        toggleState = isToggled,
                         onToggle = { isSelected ->
-                            val newState = if (isSelected) toggleStates + (file.path to true) else toggleStates + (file.path to false)
-                            toggleStates = newState
+                            isToggled = isSelected
+                            val newMap = toggleStates.value.toMutableMap()
+                            newMap[file.path] = isSelected
+                            toggleStates.value = newMap
                         },
                         onSelect = {
                             selectedFile = if (selectedFile?.path == file.path) null else file
@@ -209,7 +212,6 @@ fun FileManagerFragment(
                             viewModel.deleteSelected()
                             showDeleteConfirm = false
                             selectedFile = null
-                            toggleStates = toggleStates + (selectedFile?.path ?: "" to false)
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.error,
@@ -218,8 +220,7 @@ fun FileManagerFragment(
                     ) { Text("Delete") }
                 },
                 dismissButton = {
-                    @Suppress("DEPRECATION")
-                    TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(id = android.R.string.cancel)) }
+                    TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
                 }
             )
         }
@@ -245,8 +246,7 @@ fun FileManagerFragment(
                     }) { Text("Create") }
                 },
                 dismissButton = {
-                    @Suppress("DEPRECATION")
-                    TextButton(onClick = { showNewFolderDialog = false }) { Text(stringResource(id = android.R.string.cancel)) }
+                    TextButton(onClick = { showNewFolderDialog = false }) { Text("Cancel") }
                 }
             )
         }
@@ -272,17 +272,13 @@ fun FileManagerFragment(
                     }) { Text("Rename") }
                 },
                 dismissButton = {
-                    @Suppress("DEPRECATION")
-                    TextButton(onClick = { showRenameDialog = false }) { Text(stringResource(id = android.R.string.cancel)) }
+                    TextButton(onClick = { showRenameDialog = false }) { Text("Cancel") }
                 }
             )
         }
     }
 }
 
-/**
- * File row with selection toggle
- */
 @Composable
 fun FileRow(
     file: File,
@@ -293,20 +289,21 @@ fun FileRow(
     onDelete: () -> Unit,
     onRename: () -> Unit
 ) {
-    val context = LocalContext.current
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp),
+            .padding(vertical = 2.dp)
+            .clickable(onClick = onSelect),
         shape = RoundedCornerShape(4.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = if (isSelected) Color(0xff3a3a3a) else Color(0xff24242c)
         ),
-        elevation = 1.dp
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -315,7 +312,7 @@ fun FileRow(
                 modifier = Modifier
                     .fillMaxWidth(0.7f)
                     .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = file.name,
@@ -330,7 +327,7 @@ fun FileRow(
                         text = "${file.listFiles()?.size ?: 0} items",
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.caption,
+                        style = MaterialTheme.typography.bodySmall,
                         color = Color(0xff888888)
                     )
                 } else {
@@ -338,52 +335,29 @@ fun FileRow(
                         text = formatFileSize(file.length()),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.caption,
+                        style = MaterialTheme.typography.bodySmall,
                         color = Color(0xff888888)
                     )
                 }
             }
 
-            // Toggle switch for selection
-            androidx.compose.material3.ToggleSwitch(
+            // Toggle switch
+            Switch(
                 checked = toggleState,
-                onCheckedChange = onToggle,
-                colors = androidx.compose.material3.ToggleSwitchDefaults.colors(
-                    thumbColor = Color(0xff1a1a1a),
-                    trackColor = if (toggleState) Color(0xffdc2626) else Color(0xff555555)
-                )
+                onCheckedChange = onToggle
             )
-
-            // Selection indicator
-            Box(
-                modifier = Modifier.size(20.dp).padding(end = 4.dp),
-                color = if (isSelected) Color(0xffdc2626) else Color.Transparent,
-                shape = RoundedCornerShape(4.dp)
-            )
-        }
-    }
-
-    /**
-     * Format file size to human readable
-     */
-    private fun formatFileSize(size: Long): String {
-        val kb = 1024f
-        val mb = kb * 1024f
-
-        return if (size >= mb) {
-            "${(size / mb).toStringAsFixed(1)} MB"
-        } else if (size >= kb) {
-            "${(size / kb).toStringAsFixed(1)} KB"
-        } else {
-            "${size} bytes"
         }
     }
 }
 
-@Preview
-@Composable
-private fun FileManagerPreview() {
-    PojavTheme(dynamicColor = true) {
-        FileManagerFragment(onBack = {})
+private fun formatFileSize(size: Long): String {
+    val kb = 1024f
+    val mb = kb * 1024f
+    return if (size >= mb) {
+        "%.1f MB".format(size / mb)
+    } else if (size >= kb) {
+        "%.1f KB".format(size / kb)
+    } else {
+        "${size} bytes"
     }
 }

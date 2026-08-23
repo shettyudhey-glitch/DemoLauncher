@@ -295,6 +295,18 @@ public class GameRunner {
         javaArgList.add("-XX:+UseG1GC");
         javaArgList.add("-XX:MaxGCPauseMillis=50");
         javaArgList.add("-XX:+UnlockExperimentalVMOptions");
+        javaArgList.add("-XX:+DisableExplicitGC");
+        javaArgList.add("-XX:+UseStringDeduplication");
+        javaArgList.add("-XX:+OptimizeStringConcat");
+        javaArgList.add("-XX:+UseCompressedOops");
+        javaArgList.add("-XX:+UseCompressedClassPointers");
+        javaArgList.add("-XX:+UseFastUnorderedAggregation");
+        javaArgList.add("-XX:+UseVectorApi");
+        javaArgList.add("-XX:+UseVectorCmov");
+        javaArgList.add("-XX:ActiveProcessorCount=4");
+        javaArgList.add("-XX:ReservedPrefetchIntervalProduct=100");
+        javaArgList.add("-XX:ReservedPrefetchIntervalCode=150");
+        javaArgList.add("-XX:ReservedPrefetchIntervalThreadLocalHandshakes=200");
 
         activity.runOnUiThread(() -> Toast.makeText(activity, activity.getString(R.string.autoram_info_msg,LauncherPreferences.PREF_RAM_ALLOCATION), Toast.LENGTH_SHORT).show());
 

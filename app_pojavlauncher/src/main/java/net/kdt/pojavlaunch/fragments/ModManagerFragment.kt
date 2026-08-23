@@ -1,74 +1,70 @@
 package net.kdt.pojavlaunch.fragments
-import java.io.File
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.hilt.navigation.compose.hiltViewModel
 
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.activity.compose.ComposeView
-import androidx.compose.foundation.Background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.relativesize
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.shape.shape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.focus.requestFocus
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.isFocusable
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.intdp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.size
-import androidx.compose.foundation.indicator.rememberToggleSource
-import androidx.compose.foundation.indicator.Toggleable
-import androidx.compose.foundation.indicator.ToggleGroup
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.preferSize
-import androidx.compose.ui.layout.ContentScale
-import kotlin.result.success
-import net.kdt.pojavlaunch.BaseActivity
-import net.kdt.pojavlaunch.authenticator.Accounts
-import net.kdt.pojavlaunch.kotlin.ui.viewmodel.DirectoryManagerViewModel
-import net.kdt.pojavlaunch.modloaders.modpacks.models.Constants
-import net.kdt.pojavlaunch.ui.screens.AccountManagerOverlay
+import androidx.hilt.navigation.compose.hiltViewModel
 import net.kdt.pojavlaunch.ui.theme.PojavTheme
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import net.kdt.pojavlaunch.ui.screens.SettingsOverlay
-import net.kdt.pojavlaunch.ui.screens.AboutOverlay
+import net.kdt.pojavlaunch.kotlin.ui.viewmodel.DirectoryManagerViewModel
+import java.io.File
 
 /**
  * Mod Manager Fragment - displays installed .jar files in /mods directory
@@ -89,24 +85,29 @@ fun ModManagerFragment(
     val viewModel: DirectoryManagerViewModel = hiltViewModel()
     viewModel.init("Mods", "/mods")
 
-    // Refresh toggle states when entries change
-    val entries by viewModel.entries
+    val entries: List<File> = viewModel.entries
 
     LaunchedEffect(entries) {
-        // Initialize toggle states for .jar files
-        val jarEntries = entries.filter { it.name.endsWith(".jar") }
-        if (toggleStates.isEmpty() && !jarEntries.isEmpty()) {
-            toggleStates = remember { mutableMapOf(jarEntries.indices.map { it to false }.toMap()) }
+        val jarEntries = entries.filter { it.name.endsWith(".jar") || it.name.endsWith(".jar.disabled") }
+        if (jarEntries.isNotEmpty()) {
+            val newStates = mutableMapOf(toggleStates.value)
+            jarEntries.forEach { file ->
+                if (!newStates.containsKey(file.path)) {
+                    val enabled = !file.name.endsWith(".disabled")
+                    newStates[file.path] = enabled
+                }
+            }
+            toggleStates.value = newStates
         }
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.Start,
-        scrollState = rememberScrollState()
+        verticalArrangement = Arrangement.Top
     ) {
         // Header
         Surface(
@@ -134,13 +135,15 @@ fun ModManagerFragment(
                     onClick = { showNewFolderDialog = true },
                     modifier = Modifier
                         .size(36.dp)
-                        .background(Color(0xffdc2626), RoundedCornerShape(18.dp)),
+                        .clip(CircleShape)
+                        .background(Color(0xffdc2626)),
                     tonalElevation = 2.dp
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "Add Mod",
-                        modifier = Modifier.size(20.dp).color(Color(0xff1a1a1a))
+                        tint = Color(0xff1a1a1a),
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
@@ -155,50 +158,23 @@ fun ModManagerFragment(
             )
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize(Float.PositiveInfinity),
+                modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(8.dp),
-                scrollState = rememberScrollState()
+                contentPadding = PaddingValues(8.dp)
             ) {
                 items(entries, key = { it.path }) { file ->
                     ModCard(
                         file = file,
                         isToggled = toggleStates[file.path] ?: false,
-                        onToggle = { isToggled ->
-                            val newState = if (isToggled) toggleStates + (file.path to false) else toggleStates + (file.path to true)
-                            toggleStates = newState
-                            // Toggle mod enabled/disable
-                            toggleMod(file, isToggled)
+                        onToggle = { isEnabled ->
+                            val newStates = mutableMapOf(toggleStates.value)
+                            newStates[file.path] = isEnabled
+                            toggleStates.update { it }
+                            toggleMod(file, isEnabled)
                         }
                     )
                 }
             }
-        }
-
-        // Delete confirmation
-        if (showDeleteConfirm) {
-            AlertDialog(
-                onDismissRequest = { showDeleteConfirm = false },
-                title = { Text("Confirm Delete") },
-                text = { Text("Are you sure you want to delete '${viewModel.selectedFile?.name}'?") },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            viewModel.deleteSelected()
-                            showDeleteConfirm = false
-                            toggleStates = toggleStates - (viewModel.selectedFile?.path ?: "")
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = MaterialTheme.colorScheme.onError
-                        )
-                    ) { Text("Delete") }
-                },
-                dismissButton = {
-                    @Suppress("DEPRECATION")
-                    TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(id = android.R.string.cancel)) }
-                }
-            )
         }
 
         // New folder dialog
@@ -222,8 +198,31 @@ fun ModManagerFragment(
                     }) { Text("Create") }
                 },
                 dismissButton = {
-                    @Suppress("DEPRECATION")
-                    TextButton(onClick = { showNewFolderDialog = false }) { Text(stringResource(id = android.R.string.cancel)) }
+                    TextButton(onClick = { showNewFolderDialog = false }) { Text("Cancel") }
+                }
+            )
+        }
+
+        // Delete confirmation
+        if (showDeleteConfirm) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirm = false },
+                title = { Text("Confirm Delete") },
+                text = { Text("Are you sure you want to delete '${viewModel.selectedFile?.name}'?") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            viewModel.deleteSelected()
+                            showDeleteConfirm = false
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError
+                        )
+                    ) { Text("Delete") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
                 }
             )
         }
@@ -239,8 +238,6 @@ fun ModCard(
     isToggled: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
-    val context = LocalContext.current
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -249,7 +246,7 @@ fun ModCard(
         colors = CardDefaults.elevatedCardColors(
             containerColor = Color(0xff24242c)
         ),
-        elevation = 1.dp
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -261,7 +258,7 @@ fun ModCard(
                 modifier = Modifier
                     .fillMaxWidth(0.7f)
                     .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = file.name,
@@ -272,48 +269,75 @@ fun ModCard(
                 )
 
                 Text(
-                    text = file.path.substringAfter("/mods/"),
+                    text = if (file.isDirectory) {
+                        "${file.listFiles()?.size ?: 0} items"
+                    } else {
+                        formatFileSize(file.length())
+                    },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.caption,
+                    style = MaterialTheme.typography.bodySmall,
                     color = Color(0xff888888)
                 )
             }
 
             // Toggle switch
-            androidx.compose.material3.ToggleSwitch(
+            Switch(
                 checked = isToggled,
                 onCheckedChange = onToggle,
-                colors = androidx.compose.material3.ToggleSwitchDefaults.colors(
-                    thumbColor = Color(0xff1a1a1a),
-                    trackColor = if (isToggled) Color(0xffdc2626) else Color(0xff555555)
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color(0xff1a1a1a),
+                    checkedTrackColor = Color(0xffdc2626),
+                    uncheckedThumbColor = Color(0xff1a1a1a),
+                    uncheckedTrackColor = Color(0xff555555)
                 )
             )
         }
     }
+}
 
-    /**
-     * Toggle mod enabled/disable without deleting the file
-     */
-    fun toggleMod(file: File, enabled: Boolean) {
-        // Rename file to .enabled/.disabled or remove extension toggle
-        if (enabled) {
-            // Mark as enabled - could add .enabled extension or just track state
-            // For now, just update the toggle state
-        } else {
-            // Mark as disabled - add .disabled extension
-            val disabledFile = File(file.parentFile, "${file.name}.disabled")
-            if (file.renameTo(disabledFile)) {
-                // Successfully renamed
-            }
-        }
+private fun formatFileSize(size: Long): String {
+    val kb = 1024f
+    val mb = kb * 1024f
+    return if (size >= mb) {
+        "%.1f MB".format(size / mb)
+    } else if (size >= kb) {
+        "%.1f KB".format(size / kb)
+    } else {
+        "${size} bytes"
     }
 }
 
-@Preview
-@Composable
-private fun ModManagerPreview() {
-    PojavTheme(dynamicColor = true) {
-        ModManagerFragment(onBack = {})
+fun toggleMod(file: File, enabled: Boolean) {
+    val newName = if (enabled) {
+        file.name.removeSuffix(".disabled")
+    } else {
+        "${file.name}.disabled"
+    }
+    if (newName.isEmpty() || newName == file.name) return
+
+    val target = File(file.parentFile, newName)
+    if (target.exists()) {
+        return
+    }
+    file.renameTo(target)
+}
+
+/**
+ * Fragment wrapper for Compose — retains the same pattern as FileManagerFragment
+ */
+class ModManagerFragment : androidx.fragment.app.Fragment() {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        return ComposeView(inflater.context).apply {
+            setContent {
+                PojavTheme {
+                    ModManagerFragment(onBack = {})
+                }
+            }
+        }
     }
 }

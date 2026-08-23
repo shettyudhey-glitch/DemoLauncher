@@ -36,6 +36,7 @@ import net.kdt.pojavlaunch.modloaders.modpacks.imagecache.IconCacheJanitor;
 import net.kdt.pojavlaunch.prefs.LauncherPreferences;
 import net.kdt.pojavlaunch.progresskeeper.ProgressKeeper;
 import net.kdt.pojavlaunch.progresskeeper.TaskCountListener;
+import net.kdt.pojavlaunch.services.FpsBoosterService;
 import net.kdt.pojavlaunch.services.ProgressServiceKeeper;
 import net.kdt.pojavlaunch.tasks.AsyncMinecraftDownloader;
 import net.kdt.pojavlaunch.tasks.AsyncVersionList;
@@ -139,6 +140,9 @@ public class LauncherActivity extends BaseActivity {
     private void performGameLaunch(Instance selectedInstance) {
         String normalizedVersionId = AsyncMinecraftDownloader.normalizeVersionId(selectedInstance.versionId);
         JMinecraftVersionList.Version mcVersion = AsyncMinecraftDownloader.getListedVersion(normalizedVersionId);
+
+        FpsBoosterService.applySilentBoosts(this);
+
         new MinecraftDownloader().start(
                 this.getAssets(),
                 mcVersion,
