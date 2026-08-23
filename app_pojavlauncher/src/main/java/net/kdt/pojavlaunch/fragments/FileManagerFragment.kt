@@ -131,18 +131,19 @@ fun FileManagerFragment(
         }
 
         // Directory tabs
+        val tabData = listOf(
+            "/mods" to "Mods",
+            "/saves" to "Saves",
+            "/resourcepacks" to "Resource Packs",
+            "/shaderpacks" to "Shader Packs",
+            "/logs" to "Logs"
+        )
         TabRow(
+            selectedTabIndex = tabData.indexOfFirst { it.first == selectedTab }.coerceAtLeast(0),
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color(0xff24242c))
         ) {
-            val tabData = listOf(
-                "/mods" to "Mods",
-                "/saves" to "Saves",
-                "/resourcepacks" to "Resource Packs",
-                "/shaderpacks" to "Shader Packs",
-                "/logs" to "Logs"
-            )
             tabData.forEach { (tabKey, tabLabel) ->
                 Tab(
                     text = { Text(tabLabel) },
@@ -180,7 +181,6 @@ fun FileManagerFragment(
                         isSelected = selectedFile?.path == file.path,
                         toggleState = isToggled,
                         onToggle = { isSelected ->
-                            isToggled = isSelected
                             val newMap = toggleStates.value.toMutableMap()
                             newMap[file.path] = isSelected
                             toggleStates.value = newMap

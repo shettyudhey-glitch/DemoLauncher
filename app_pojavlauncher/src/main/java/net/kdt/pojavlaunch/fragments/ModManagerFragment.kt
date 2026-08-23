@@ -90,14 +90,14 @@ fun ModManagerFragment(
     LaunchedEffect(entries) {
         val jarEntries = entries.filter { it.name.endsWith(".jar") || it.name.endsWith(".jar.disabled") }
         if (jarEntries.isNotEmpty()) {
-            val newStates = mutableMapOf(toggleStates.value)
+            val newStates = toggleStates.toMutableMap()
             jarEntries.forEach { file ->
                 if (!newStates.containsKey(file.path)) {
                     val enabled = !file.name.endsWith(".disabled")
                     newStates[file.path] = enabled
                 }
             }
-            toggleStates.value = newStates
+            toggleStates = newStates
         }
     }
 
@@ -167,9 +167,9 @@ fun ModManagerFragment(
                         file = file,
                         isToggled = toggleStates[file.path] ?: false,
                         onToggle = { isEnabled ->
-                            val newStates = mutableMapOf(toggleStates.value)
+                            val newStates = toggleStates.toMutableMap()
                             newStates[file.path] = isEnabled
-                            toggleStates.update { it }
+                            toggleStates = newStates
                             toggleMod(file, isEnabled)
                         }
                     )

@@ -1,0 +1,7 @@
+[submodule "dnbglfw/src/main/cpp/glfw"]
+	path = dnbglfw/src/main/cpp/glfw
+	url = https://github.com/MojoLauncher/glfw
+
+[submodule "cs"]
+	path = cs
+	url = https://github.com/craftstudioteam/CS-LAUNCHER-v2

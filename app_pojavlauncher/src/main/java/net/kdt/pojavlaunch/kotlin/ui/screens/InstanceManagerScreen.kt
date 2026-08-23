@@ -10,19 +10,30 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,26 +42,29 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.GetValue
-import androidx.compose.runtime.LiveData
-import androidx.compose.runtime.MutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import net.kdt.pojavlaunch.fragments.InstanceEditorFragment
+import net.kdt.pojavlaunch.instances.Instance
 import net.kdt.pojavlaunch.instances.Instances
 import net.kdt.pojavlaunch.Tools
 import net.kdt.pojavlaunch.kotlin.ui.viewmodel.DirectoryManagerViewModel
 import java.io.File
 
 @Composable
-fun InstanceManagerScreen(
+fun InstanceManagerOverlay(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -60,16 +74,17 @@ fun InstanceManagerScreen(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showCloneConfirm by remember { mutableStateOf(false) }
     var inputName by remember { mutableStateOf("") }
-    var selectedInstance by remember { mutableStateOf<Instances.DisplayInstance?>(null) }
+    var selectedInstance by remember { mutableStateOf<Instance?>(null) }
 
     val instances: Instances = remember {
         try { Instances.loadDisplay() } catch (e: Exception) { Instances.loadDisplay() }
     }
+    val instanceList: List<Instance> = remember { Instances.loadAllInstances().filterNotNull() }
 
     // Select an instance to manage
-    LaunchedEffect(instances.list) {
-        if (instances.list.isNotEmpty()) {
-            selectedInstance = instances.list.firstOrNull()
+    LaunchedEffect(instanceList) {
+        if (instanceList.isNotEmpty()) {
+            selectedInstance = instanceList.firstOrNull()
         }
     }
 
@@ -122,7 +137,7 @@ fun InstanceManagerScreen(
         }
 
         // Instance list
-        if (instances.list.isEmpty()) {
+        if (instanceList.isEmpty()) {
             Text(
                 text = "No instances found. Create a new instance to get started.",
                 color = androidx.compose.ui.graphics.Color(0xffaaaaaa),
@@ -134,7 +149,7 @@ fun InstanceManagerScreen(
                 verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(8.dp)
             ) {
-                items(instances.list, key = { it.mInstanceRoot?.path ?: "" }) { instance ->
+                items(instanceList, key = { it.getInstanceRoot()?.path ?: "" }) { instance ->
                     InstanceCard(
                         instance = instance,
                         onToggle = { isEnabled ->
@@ -200,7 +215,7 @@ fun InstanceManagerScreen(
                         onClick = {
                             try {
                                 Instances.removeInstance(selectedInstance!!)
-                                selectedInstance = instances.list.firstOrNull()
+                                selectedInstance = instanceList.firstOrNull()
                                 showDeleteConfirm = false
                             } catch (e: Exception) {
                                 Tools.showErrorRemote("Error deleting instance", e)
@@ -255,7 +270,7 @@ fun InstanceManagerScreen(
 
 @Composable
 fun InstanceCard(
-    instance: Instances.DisplayInstance,
+    instance: Instance,
     onToggle: (Boolean) -> Unit,
     onSelect: () -> Unit,
     onDelete: () -> Unit,

@@ -1,6 +1,6 @@
 package net.kdt.pojavlaunch.ui.screens
 import androidx.compose.ui.res.dimensionResource
-import net.kdt.pojavlaunch.R
+import net.ashmeet.hyperlauncher.R
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
@@ -75,7 +75,6 @@ import com.kdt.mcgui.ProgressLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import net.ashmeet.hyperlauncher.R
 import net.kdt.pojavlaunch.BaseActivity
 import net.kdt.pojavlaunch.authenticator.AuthType
 import net.kdt.pojavlaunch.authenticator.accounts.Accounts
