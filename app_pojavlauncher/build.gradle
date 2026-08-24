@@ -53,10 +53,18 @@ android {
 
     signingConfigs {
         release {
-            storeFile file("C:/Users/ASHMEET/hyperbar-release.jks")
-            storePassword "Ashmeetop10"
-            keyAlias "hyperbar"
-            keyPassword "Ashmeetop10"
+            def keystoreFile = file("C:/Users/ASHMEET/hyperbar-release.jks")
+            if (keystoreFile.exists()) {
+                storeFile keystoreFile
+                storePassword "Ashmeetop10"
+                keyAlias "hyperbar"
+                keyPassword "Ashmeetop10"
+            } else {
+                storeFile file("debug.keystore")
+                storePassword "android"
+                keyAlias "androiddebugkey"
+                keyPassword "android"
+            }
         }
     }
 
