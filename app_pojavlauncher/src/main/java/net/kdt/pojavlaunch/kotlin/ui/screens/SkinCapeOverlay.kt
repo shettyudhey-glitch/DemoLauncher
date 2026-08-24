@@ -27,6 +27,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,11 +43,14 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import net.kdt.pojavlaunch.authenticator.accounts.Accounts
+import net.kdt.pojavlaunch.authenticator.accounts.MinecraftAccount
 import net.kdt.pojavlaunch.skin.AndroidSkinAnalyzer
 import net.kdt.pojavlaunch.skin.LocalUuidUtils
-import net.kdt.pojavlaunch.skin.SkinManager
 import net.kdt.pojavlaunch.skin.SkinModelType
 import java.io.File
+import java.io.FileOutputStream
+import java.util.UUID
 
 @Composable
 fun SkinCapeOverlay(
@@ -62,6 +67,32 @@ fun SkinCapeOverlay(
     var skinName by remember { mutableStateOf("") }
     var capeName by remember { mutableStateOf("") }
     var modelType by remember { mutableStateOf(SkinModelType.STEVE) }
+
+    val skinLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            val file = copyUriToInternal(context, it, "skin")
+            if (file != null) {
+                val bytes = file.readBytes()
+                if (analyzer.validate(bytes)) {
+                    selectedSkinFile = file
+                    skinName = file.nameWithoutExtension
+                    modelType = analyzer.detectModel(bytes)
+                } else {
+                    android.widget.Toast.makeText(context, "Invalid skin dimensions!", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    val capeLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            val file = copyUriToInternal(context, it, "cape")
+            if (file != null) {
+                selectedCapeFile = file
+                capeName = file.nameWithoutExtension
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -142,10 +173,7 @@ fun SkinCapeOverlay(
                 )
 
                 Button(
-                    onClick = {
-                        // Handle skin selection
-                        showSkinDialog = false
-                    },
+                    onClick = { skinLauncher.launch("image/*") },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xff3a3a3a),
@@ -172,10 +200,7 @@ fun SkinCapeOverlay(
                 )
 
                 Button(
-                    onClick = {
-                        // Handle cape selection
-                        showCapeDialog = false
-                    },
+                    onClick = { capeLauncher.launch("image/*") },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xff3a3a3a),
@@ -222,9 +247,27 @@ fun SkinCapeOverlay(
                 // Save button
                 Button(
                     onClick = {
-                        // Save skin/cape configuration
-                        showSkinDialog = false
-                        showCapeDialog = false
+                        try {
+                            val skinBytes = selectedSkinFile?.readBytes()
+                            val capeBytes = selectedCapeFile?.readBytes()
+                            if (skinBytes != null && analyzer.validate(skinBytes)) {
+                                if (analyzer.prepareSkin(skinBytes) == null) {
+                                    android.widget.Toast.makeText(context, "Invalid skin dimensions!", android.widget.Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
+                            }
+                            val account: MinecraftAccount? = Accounts.getCurrent()
+                            if (account != null) {
+                                account.skinPath = selectedSkinFile?.absolutePath
+                                account.capePath = selectedCapeFile?.absolutePath
+                                account.skinModel = modelType
+                                account.save()
+                            }
+                            android.widget.Toast.makeText(context, "Skin & Cape saved", android.widget.Toast.LENGTH_SHORT).show()
+                            onBack()
+                        } catch (e: Exception) {
+                            android.widget.Toast.makeText(context, "Error saving: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
@@ -236,5 +279,20 @@ fun SkinCapeOverlay(
                 }
             }
         }
+    }
+}
+
+private fun copyUriToInternal(context: android.content.Context, uri: android.net.Uri, prefix: String): File? {
+    return try {
+        context.contentResolver.openInputStream(uri)?.use { inputStream ->
+            val fileName = "${prefix}_${UUID.randomUUID()}.png"
+            val file = File(context.filesDir, fileName)
+            FileOutputStream(file).use { outputStream ->
+                inputStream.copyTo(outputStream)
+            }
+            file
+        }
+    } catch (e: Exception) {
+        null
     }
 }

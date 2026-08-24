@@ -153,7 +153,13 @@ fun InstanceManagerOverlay(
                     InstanceCard(
                         instance = instance,
                         onToggle = { isEnabled ->
-                            // Toggle instance enabled/disabled
+                            try {
+                                instance.sharedData = isEnabled
+                                instance.maybeWrite()
+                                Toast.makeText(context, "Instance ${instance.name} updated", Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) {
+                                Tools.showErrorRemote("Error updating instance", e)
+                            }
                         },
                         onSelect = {
                             selectedInstance = instance
@@ -332,6 +338,12 @@ fun InstanceCard(
                         contentColor = androidx.compose.ui.graphics.Color(0xffffffff)
                     )
                 ) { Text("Select") }
+
+                androidx.compose.material3.Switch(
+                    checked = instance.sharedData,
+                    onCheckedChange = { onToggle(it) },
+                    modifier = Modifier.padding(4.dp)
+                )
 
                 Button(
                     onClick = onDelete,
